@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+{% block title %}Problem List{% endblock %}
+{% block body %}
+<div class="flex flex-wrap items-end gap-3 mb-4">
+  <h1 class="text-2xl font-bold" data-i18n="list.title">Problem List</h1>
+  <div id="count" class="text-sm text-zinc-500"></div>
+  <div class="ml-auto flex flex-wrap gap-2 text-sm">
+    <select id="difficulty" class="px-2 py-1 rounded bg-zinc-100 dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-700">
+      <option value="" data-i18n="list.filter.allDiff">All difficulties</option>
+      <option value="easy" data-i18n="diff.easy">Easy</option>
+      <option value="medium" data-i18n="diff.medium">Medium</option>
+      <option value="hard" data-i18n="diff.hard">Hard</option>
+    </select>
+    <input id="tag" placeholder="Filter by tag"
+           data-i18n-attr="placeholder:list.filter.tagPlaceholder"
+           class="px-2 py-1 rounded bg-zinc-100 dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-700 w-28">
+    <select id="sort" class="px-2 py-1 rounded bg-zinc-100 dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-700">
+      <option value="lc_number" data-i18n="list.sort.lcNumber">Number</option>
+      <option value="first_solved_at" data-i18n="list.sort.firstSolved">First solved</option>
+      <option value="next_review_at" data-i18n="list.sort.nextReview">Next review</option>
+      <option value="review_count" data-i18n="list.sort.reviewCount">Reviews</option>
+      <option value="difficulty" data-i18n="list.sort.difficulty">Difficulty</option>
+      <option value="updated_at" data-i18n="list.sort.updated">Last updated</option>
+    </select>
+    <select id="order" class="px-2 py-1 rounded bg-zinc-100 dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-700">
+      <option value="asc" data-i18n="list.sort.asc">Asc ↑</option>
+      <option value="desc" data-i18n="list.sort.desc">Desc ↓</option>
+    </select>
+  </div>
+</div>
+<div class="overflow-auto rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900">
+  <table class="w-full text-sm">
+    <thead class="bg-zinc-100 dark:bg-zinc-800/60 text-left">
+      <tr>
+        <th class="px-3 py-2 w-16" data-i18n="list.col.num">#</th>
+        <th class="px-3 py-2" data-i18n="list.col.title">Title</th>
+        <th class="px-3 py-2 w-20" data-i18n="list.col.diff">Difficulty</th>
+        <th class="px-3 py-2" data-i18n="list.col.tags">Tags</th>
+        <th class="px-3 py-2 w-20" data-i18n="list.col.reviews">Reviews</th>
+        <th class="px-3 py-2 w-28" data-i18n="list.col.next">Next review</th>
+        <th class="px-3 py-2 w-32" data-i18n="list.col.actions">Actions</th>
+      </tr>
+    </thead>
+    <tbody id="rows"></tbody>
+  </table>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+async function load() {
+  const params = new URLSearchParams();
+  if ($('#difficulty').value) params.set('difficulty', $('#difficulty').value);
+  if ($('#tag').value.trim()) params.set('tag', $('#tag').value.trim());
+  params.set('sort', $('#sort').value);
+  params.set('order', $('#order').value);
+
+  let list;
+  try { list = await LT.api('/api/problems?' + params.toString()); }
+  catch (e) { return LT.showToast('Failed to load: ' + e.message, 'error'); }
+
+  $('#count').textContent = LT.t('list.count', { n: list.length });
+  const tbody = $('#rows');
+  tbody.innerHTML = '';
+  if (!list.length) {
+    tbody.innerHTML = `<tr><td colspan="7" class="px-3 py-8 text-center text-zinc-500">${
+      LT.escapeHtml(LT.t('list.empty'))}<a href="/add" class="text-blue-500 hover:underline">${
+      LT.escapeHtml(LT.t('list.emptyAddLink'))}</a>${LT.escapeHtml(LT.t('list.emptyTail'))}</td></tr>`;
+    return;
+  }
+  for (const p of list) {
+    const tr = document.createElement('tr');
+    tr.className = 'border-t border-zinc-200 dark:border-zinc-800 hover:bg-zinc-100/50 dark:hover:bg-zinc-800/40';
+    const tags = (p.tags || [])
+      .map(t => `<span class="text-xs px-1 py-0.5 bg-zinc-200 dark:bg-zinc-800 rounded mr-1">${LT.escapeHtml(t)}</span>`)
+      .join('');
+    tr.innerHTML = `
+      <td class="px-3 py-2 font-mono">${p.lc_number}</td>
+      <td class="px-3 py-2">${LT.escapeHtml(p.title)}</td>
+      <td class="px-3 py-2">${LT.diffBadge(p.difficulty)}</td>
+      <td class="px-3 py-2">${tags}</td>
+      <td class="px-3 py-2">${p.review_count}</td>
+      <td class="px-3 py-2 text-zinc-500">${LT.fmtDate(p.next_review_at)}</td>
+      <td class="px-3 py-2 whitespace-nowrap">
+        <a href="/review/${p.id}" class="text-blue-600 dark:text-blue-400 hover:underline">${LT.escapeHtml(LT.t('list.action.review'))}</a>
+        <span class="text-zinc-400 mx-1">·</span>
+        <a href="/add?id=${p.id}" class="text-blue-600 dark:text-blue-400 hover:underline">${LT.escapeHtml(LT.t('list.action.edit'))}</a>
+      </td>`;
+    tbody.appendChild(tr);
+  }
+}
+
+['difficulty', 'tag', 'sort', 'order'].forEach(id => {
+  const el = document.getElementById(id);
+  el.addEventListener('change', load);
+  el.addEventListener('input', () => { clearTimeout(el._t); el._t = setTimeout(load, 200); });
+});
+window.addEventListener('langchange', load);
+load();
+</script>
+{% endblock %}

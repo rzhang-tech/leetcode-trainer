@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+{% block title %}Review Calendar{% endblock %}
+{% block body %}
+<div class="flex flex-wrap items-center gap-3 mb-4">
+  <h1 class="text-2xl font-bold" data-i18n="calendar.title">Review Calendar</h1>
+  <div class="flex items-center gap-1 ml-2">
+    <button id="prev" class="px-2 py-1 rounded hover:bg-zinc-200 dark:hover:bg-zinc-800">←</button>
+    <div id="month" class="font-semibold min-w-[8rem] text-center"></div>
+    <button id="next" class="px-2 py-1 rounded hover:bg-zinc-200 dark:hover:bg-zinc-800">→</button>
+  </div>
+  <button id="today-btn" class="ml-auto text-sm px-3 py-1 rounded border border-zinc-300 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800" data-i18n="calendar.todayBtn">Today</button>
+</div>
+
+<div class="grid grid-cols-7 gap-1.5 sm:gap-2 text-xs text-center text-zinc-500 mb-1">
+  <div data-i18n="calendar.dayHeader.mon">Mon</div>
+  <div data-i18n="calendar.dayHeader.tue">Tue</div>
+  <div data-i18n="calendar.dayHeader.wed">Wed</div>
+  <div data-i18n="calendar.dayHeader.thu">Thu</div>
+  <div data-i18n="calendar.dayHeader.fri">Fri</div>
+  <div data-i18n="calendar.dayHeader.sat">Sat</div>
+  <div data-i18n="calendar.dayHeader.sun">Sun</div>
+</div>
+<div id="grid" class="grid grid-cols-7 gap-1.5 sm:gap-2"></div>
+
+<div id="day-detail" class="mt-6 hidden">
+  <h2 class="font-semibold mb-2" id="day-title"></h2>
+  <div id="day-list" class="space-y-2"></div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+let cursor = new Date();
+cursor.setDate(1);
+
+async function load() {
+  const y = cursor.getFullYear();
+  const m = cursor.getMonth() + 1;
+  document.getElementById('month').textContent = LT.t('calendar.month', { year: y, month: m });
+
+  let data;
+  try { data = await LT.api(`/api/calendar?year=${y}&month=${m}`); }
+  catch (e) { return LT.showToast('Failed to load: ' + e.message, 'error'); }
+
+  const grid = document.getElementById('grid');
+  grid.innerHTML = '';
+
+  const first = new Date(y, m - 1, 1);
+  const lead = (first.getDay() + 6) % 7;
+  for (let i = 0; i < lead; i++) {
+    const c = document.createElement('div');
+    c.className = 'h-16 sm:h-20';
+    grid.appendChild(c);
+  }
+  const days = new Date(y, m, 0).getDate();
+  const today = new Date();
+  const todayStr = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+
+  for (let d = 1; d <= days; d++) {
+    const ds = `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+    const items = data[ds] || [];
+    const cardTotal = items.reduce((s, it) => s + (it.card_count || 0), 0);
+    const isToday = ds === todayStr;
+    const c = document.createElement('div');
+    c.className = `h-16 sm:h-20 rounded border p-1.5 cursor-pointer flex flex-col text-left ${isToday ? 'border-blue-500' : 'border-zinc-200 dark:border-zinc-800'} hover:bg-zinc-100 dark:hover:bg-zinc-900`;
+    c.innerHTML = `
+      <div class="text-xs font-mono ${isToday ? 'text-blue-500 font-semibold' : ''}">${d}</div>
+      ${cardTotal
+        ? `<div class="text-xs mt-auto bg-blue-600/15 text-blue-600 dark:text-blue-300 rounded px-1 truncate">${LT.escapeHtml(LT.t('calendar.cellCardCount', { n: cardTotal }))}</div>`
+        : ''}`;
+    c.addEventListener('click', () => showDay(ds, items));
+    grid.appendChild(c);
+  }
+}
+
+function showDay(ds, items) {
+  const wrap = document.getElementById('day-detail');
+  wrap.classList.remove('hidden');
+  const total = items.reduce((s, it) => s + (it.card_count || 0), 0);
+  document.getElementById('day-title').textContent =
+    LT.t('calendar.dayTitle', { date: ds, problems: items.length, cards: total });
+  const list = document.getElementById('day-list');
+  list.innerHTML = '';
+  if (!items.length) {
+    list.innerHTML = `<div class="text-sm text-zinc-500">${LT.escapeHtml(LT.t('calendar.dayEmpty'))}</div>`;
+    return;
+  }
+  for (const p of items) {
+    const a = document.createElement('a');
+    a.href = `/review/${p.id}`;
+    a.className = 'flex items-center gap-3 p-2 rounded border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 hover:bg-zinc-100 dark:hover:bg-zinc-800';
+    a.innerHTML = `
+      <span class="font-mono text-zinc-500">#${p.lc_number}</span>
+      <span class="flex-1">${LT.escapeHtml(p.title)}</span>
+      <span class="text-xs text-zinc-500">${LT.escapeHtml(LT.t('calendar.dayCards', { n: p.card_count }))}</span>
+      ${LT.diffBadge(p.difficulty)}`;
+    list.appendChild(a);
+  }
+}
+
+document.getElementById('prev').onclick = () => { cursor.setMonth(cursor.getMonth() - 1); load(); };
+document.getElementById('next').onclick = () => { cursor.setMonth(cursor.getMonth() + 1); load(); };
+document.getElementById('today-btn').onclick = () => {
+  cursor = new Date();
+  cursor.setDate(1);
+  load();
+};
+window.addEventListener('langchange', load);
+load();
+</script>
+{% endblock %}

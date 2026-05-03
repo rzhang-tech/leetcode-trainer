@@ -1,0 +1,263 @@
+{% extends "base.html" %}
+{% block title %}Add Problem{% endblock %}
+{% block body %}
+<h1 class="text-2xl font-bold mb-4" id="page-title" data-i18n="add.title">Add Problem</h1>
+<form id="form" class="space-y-5">
+
+  <section class="p-4 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900">
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
+      <div>
+        <label class="block text-sm mb-1" data-i18n="add.lcNumber">Problem # *</label>
+        <div class="flex gap-2">
+          <input id="lc_number" type="number" min="1" required
+                 class="w-full px-3 py-2 rounded-md bg-zinc-100 dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700">
+          <button id="lookup-btn" type="button"
+                  data-i18n-attr="title:add.lookupBtn" title="Re-fetch metadata from LeetCode"
+                  class="px-3 py-2 rounded-md border border-zinc-300 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-700 text-sm">⟳</button>
+        </div>
+        <p class="text-xs text-zinc-500 mt-1" data-i18n="add.titleHint">Auto-filled from LeetCode after you enter the problem number.</p>
+      </div>
+      <div class="md:col-span-2">
+        <label class="block text-sm mb-1" data-i18n="add.titleField">Title</label>
+        <input id="title" type="text" readonly
+               data-i18n-attr="placeholder:add.titlePlaceholder"
+               class="w-full px-3 py-2 rounded-md bg-zinc-200/60 dark:bg-zinc-800/60 border border-zinc-300 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 cursor-not-allowed"
+               placeholder="(filled automatically after problem # is entered)">
+      </div>
+      <div>
+        <label class="block text-sm mb-1" data-i18n="add.difficulty">Difficulty</label>
+        <input id="difficulty_display" type="text" readonly
+               class="w-full px-3 py-2 rounded-md bg-zinc-200/60 dark:bg-zinc-800/60 border border-zinc-300 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 cursor-not-allowed"
+               placeholder="—">
+        <input id="difficulty" type="hidden" value="medium">
+      </div>
+      <div class="md:col-span-4">
+        <label class="block text-sm mb-1" data-i18n="add.tags">Tags</label>
+        <div id="tags_display" class="min-h-[2.5rem] px-3 py-2 rounded-md bg-zinc-200/60 dark:bg-zinc-800/60 border border-zinc-300 dark:border-zinc-700 flex flex-wrap gap-1 items-center">
+          <span class="text-zinc-400 text-sm" data-i18n="add.tagsPlaceholder">(filled automatically after problem # is entered)</span>
+        </div>
+        <input id="tags" type="hidden" value="">
+      </div>
+    </div>
+  </section>
+
+  <section class="p-4 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900">
+    <label class="block text-sm font-semibold mb-2" data-i18n="add.q1.label">① Is your approach to this problem clear?</label>
+    <div class="flex gap-4 items-center mb-2">
+      <label class="flex items-center gap-1.5 cursor-pointer">
+        <input type="radio" name="approach_clear" value="1" checked> <span data-i18n="add.q1.yes">Yes</span>
+      </label>
+      <label class="flex items-center gap-1.5 cursor-pointer">
+        <input type="radio" name="approach_clear" value="0"> <span data-i18n="add.q1.no">No</span>
+      </label>
+      <span class="text-xs text-zinc-500" data-i18n="add.q1.hint">If "No", you must describe the approach below; the AI will always include a "describe the approach" question.</span>
+    </div>
+    <textarea id="approach_desc" rows="6"
+              data-i18n-attr="placeholder:add.q1.placeholder"
+              class="hidden w-full px-3 py-2 rounded-md bg-zinc-100 dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 font-mono text-sm leading-relaxed"
+              placeholder="Describe the core approach in your own words…"></textarea>
+  </section>
+
+  <section class="p-4 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900">
+    <label class="block text-sm font-semibold mb-1" data-i18n="add.q2.label">② Syntax errors / language pitfalls</label>
+    <p class="text-xs text-zinc-500 mb-2" data-i18n="add.q2.hint">Python syntax mistakes you made on this problem, or syntax patterns you weren't comfortable with (one per line).</p>
+    <textarea id="syntax_errors" rows="6"
+              data-i18n-attr="placeholder:add.q2.placeholder"
+              class="w-full px-3 py-2 rounded-md bg-zinc-100 dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 font-mono text-sm leading-relaxed"
+              placeholder="Examples: ..."></textarea>
+  </section>
+
+  <section class="p-4 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900">
+    <label class="block text-sm font-semibold mb-1" data-i18n="add.q3.label">③ Style / optimization</label>
+    <p class="text-xs text-zinc-500 mb-2" data-i18n="add.q3.hint">Patterns that aren't wrong but could be better.</p>
+    <textarea id="style_issues" rows="6"
+              data-i18n-attr="placeholder:add.q3.placeholder"
+              class="w-full px-3 py-2 rounded-md bg-zinc-100 dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 font-mono text-sm leading-relaxed"
+              placeholder="Examples: ..."></textarea>
+  </section>
+
+  <details class="p-4 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900">
+    <summary class="cursor-pointer text-sm font-semibold" data-i18n="add.q4.label">④ Other notes (optional, Markdown supported)</summary>
+    <p class="text-xs text-zinc-500 mt-2 mb-2" data-i18n="add.q4.hint">Anything that doesn't fit above.</p>
+    <textarea id="notes" rows="10"
+              data-i18n-attr="placeholder:add.q4.placeholder"
+              class="w-full px-3 py-2 rounded-md bg-zinc-100 dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 font-mono text-sm leading-relaxed"
+              placeholder="## Problem statement..."></textarea>
+  </details>
+
+  <div class="flex flex-wrap gap-2 sticky bottom-0 bg-zinc-50 dark:bg-zinc-950 py-2">
+    <button id="save" type="submit" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-md" data-i18n="add.btnSave">Save</button>
+    <a id="go-review" href="#" class="hidden px-4 py-2 rounded-md border border-zinc-300 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800" data-i18n="add.btnGoReview">Go to review →</a>
+    <button id="delete" type="button" class="hidden bg-rose-600 hover:bg-rose-500 text-white px-4 py-2 rounded-md ml-auto" data-i18n="add.btnDelete">Delete</button>
+  </div>
+</form>
+{% endblock %}
+{% block scripts %}
+<script>
+let currentId = null;
+let metaLoaded = false;
+const $f = (id) => document.getElementById(id);
+
+function getApproachClear() {
+  return document.querySelector('input[name="approach_clear"]:checked').value === '1';
+}
+function syncApproachVisibility() {
+  $f('approach_desc').classList.toggle('hidden', getApproachClear());
+}
+document.querySelectorAll('input[name="approach_clear"]').forEach(r => {
+  r.addEventListener('change', syncApproachVisibility);
+});
+
+function diffLabel(d) { return LT.t('diff.' + d, null, d); }
+
+function setMetaDisplay({ title, difficulty, tags }) {
+  $f('title').value = title || '';
+  $f('difficulty').value = difficulty || 'medium';
+  $f('difficulty_display').value = difficulty ? diffLabel(difficulty) : '';
+  $f('tags').value = (tags || []).join(',');
+  const td = $f('tags_display');
+  td.innerHTML = '';
+  if (!tags || !tags.length) {
+    const span = document.createElement('span');
+    span.className = 'text-zinc-400 text-sm';
+    span.textContent = LT.t('add.tagsEmpty');
+    td.appendChild(span);
+  } else {
+    for (const t of tags) {
+      const span = document.createElement('span');
+      span.className = 'text-xs px-1.5 py-0.5 bg-zinc-300/70 dark:bg-zinc-700 rounded';
+      span.textContent = t;
+      td.appendChild(span);
+    }
+  }
+  metaLoaded = !!title;
+}
+
+function clearMetaDisplay() {
+  $f('title').value = '';
+  $f('difficulty').value = 'medium';
+  $f('difficulty_display').value = '';
+  $f('tags').value = '';
+  const td = $f('tags_display');
+  td.innerHTML = '';
+  const span = document.createElement('span');
+  span.className = 'text-zinc-400 text-sm';
+  span.textContent = LT.t('add.tagsPlaceholder');
+  td.appendChild(span);
+  metaLoaded = false;
+}
+
+async function fetchMetaFromLC(n) {
+  $f('title').placeholder = LT.t('common.loading');
+  try {
+    const meta = await LT.api(`/api/leetcode-meta/${n}`);
+    setMetaDisplay(meta);
+    LT.showToast(LT.t('add.toast.lookupOk', { n, title: meta.title }), 'success');
+  } catch (e) {
+    clearMetaDisplay();
+    LT.showToast('Lookup failed: ' + e.message, 'error');
+  }
+  $f('title').placeholder = LT.t('add.titlePlaceholder');
+}
+
+$f('lc_number').addEventListener('blur', async () => {
+  const n = parseInt($f('lc_number').value);
+  if (!n) { clearMetaDisplay(); return; }
+  if (currentId) return;
+  try {
+    const p = await LT.api(`/api/problems/by-lc/${n}`);
+    if (p) { loadIntoForm(p); return; }
+  } catch (_) { /* 404 -> new problem */ }
+  await fetchMetaFromLC(n);
+});
+
+$f('lookup-btn').addEventListener('click', async () => {
+  const n = parseInt($f('lc_number').value);
+  if (!n) return LT.showToast(LT.t('add.toast.fillNumberFirst'), 'error');
+  if (currentId) return LT.showToast(LT.t('add.toast.editLockedMeta'), 'error');
+  await fetchMetaFromLC(n);
+});
+
+function loadIntoForm(p) {
+  currentId = p.id;
+  $f('page-title').textContent = LT.t('add.editTitle', { n: p.lc_number });
+  $f('lc_number').value = p.lc_number;
+  $f('lc_number').readOnly = true;
+  setMetaDisplay({ title: p.title, difficulty: p.difficulty, tags: p.tags || [] });
+  const ac = p.approach_clear !== false;
+  document.querySelector(`input[name="approach_clear"][value="${ac ? '1' : '0'}"]`).checked = true;
+  $f('approach_desc').value = p.approach_desc || '';
+  $f('syntax_errors').value = p.syntax_errors || '';
+  $f('style_issues').value = p.style_issues || '';
+  $f('notes').value = p.notes || '';
+  syncApproachVisibility();
+  $f('delete').classList.remove('hidden');
+  const goRev = $f('go-review');
+  goRev.href = `/review/${p.id}`;
+  goRev.classList.remove('hidden');
+}
+
+$f('form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  if (!currentId && !metaLoaded) {
+    LT.showToast(LT.t('add.toast.metaRequired'), 'error');
+    return;
+  }
+  const tags = $f('tags').value.split(',').map(t => t.trim()).filter(Boolean);
+  const data = {
+    lc_number: parseInt($f('lc_number').value),
+    title: $f('title').value.trim(),
+    difficulty: $f('difficulty').value,
+    tags,
+    approach_clear: getApproachClear(),
+    approach_desc: getApproachClear() ? '' : $f('approach_desc').value,
+    syntax_errors: $f('syntax_errors').value,
+    style_issues: $f('style_issues').value,
+    notes: $f('notes').value,
+  };
+  if (!data.lc_number || !data.title) {
+    LT.showToast(LT.t('add.toast.titleRequired'), 'error');
+    return;
+  }
+  if (!data.approach_clear && !data.approach_desc.trim()) {
+    LT.showToast(LT.t('add.toast.descRequired'), 'error');
+    return;
+  }
+  try {
+    if (currentId) {
+      await LT.api(`/api/problems/${currentId}`, { method: 'PUT', body: data });
+      LT.showToast(LT.t('add.toast.saved'), 'success');
+    } else {
+      const r = await LT.api('/api/problems', { method: 'POST', body: data });
+      loadIntoForm(r);
+      LT.showToast(LT.t('add.toast.added'), 'success');
+    }
+  } catch (err) {
+    LT.showToast('Save failed: ' + err.message, 'error');
+  }
+});
+
+$f('delete').addEventListener('click', async () => {
+  if (!currentId || !confirm(LT.t('add.toast.deleteConfirm'))) return;
+  try {
+    await LT.api(`/api/problems/${currentId}`, { method: 'DELETE' });
+    LT.showToast(LT.t('add.toast.deleted'), 'success');
+    setTimeout(() => location.href = '/list', 600);
+  } catch (err) {
+    LT.showToast('Delete failed: ' + err.message, 'error');
+  }
+});
+
+const params = new URLSearchParams(location.search);
+(async () => {
+  if (params.get('id')) {
+    try { loadIntoForm(await LT.api(`/api/problems/${params.get('id')}`)); }
+    catch (e) { LT.showToast('Failed to load: ' + e.message, 'error'); }
+  } else if (params.get('lc')) {
+    $f('lc_number').value = params.get('lc');
+    try { loadIntoForm(await LT.api(`/api/problems/by-lc/${params.get('lc')}`)); }
+    catch (_) { /* not found, treat as new */ }
+  }
+})();
+</script>
+{% endblock %}

@@ -1,0 +1,28 @@
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.venv/
+venv/
+env/
+
+# Secrets and per-deploy config — NEVER commit these.
+.env
+.env.local
+.env.*.local
+
+# Service account JSON keys (Vertex AI) and any other credentials files.
+*.json
+!.vscode/*.json
+!package*.json
+
+# SQLite database files
+data/
+*.db
+*.db-wal
+*.db-shm
+
+.idea/
+.vscode/
+*.swp
+.DS_Store

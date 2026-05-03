@@ -1,0 +1,274 @@
+{% extends "base.html" %}
+{% block title %}Review{% endblock %}
+{% block body %}
+<div id="root">
+  <div class="text-zinc-500" data-i18n="common.loading">Loading…</div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script>
+const PID = {{ problem_id }};
+let problem = null;
+let cards = [];
+
+async function load() {
+  try {
+    [problem, cards] = await Promise.all([
+      LT.api(`/api/problems/${PID}`),
+      LT.api(`/api/problems/${PID}/cards`),
+    ]);
+  } catch (e) { return LT.showToast('Failed to load: ' + e.message, 'error'); }
+  render();
+}
+
+function isDue(card) {
+  const todayEnd = new Date();
+  todayEnd.setHours(23, 59, 59, 999);
+  return card.next_review_at * 1000 <= todayEnd.getTime();
+}
+
+function render() {
+  const tags = (problem.tags || [])
+    .map(t => `<span class="text-xs px-1.5 py-0.5 bg-zinc-200 dark:bg-zinc-800 rounded">${LT.escapeHtml(t)}</span>`)
+    .join(' ');
+
+  const dueCards = cards.filter(isDue);
+  const futureCards = cards.filter(c => !isDue(c));
+
+  const genBtnLabel = cards.length === 0
+    ? LT.t('review.cards.genFirst')
+    : LT.t('review.cards.genMore');
+
+  document.getElementById('root').innerHTML = `
+    <div class="flex flex-wrap items-center gap-3 mb-3">
+      <div class="font-mono text-zinc-500">#${problem.lc_number}</div>
+      <h1 class="text-2xl font-bold">${LT.escapeHtml(problem.title)}</h1>
+      ${LT.diffBadge(problem.difficulty)}
+      <a href="/add?id=${problem.id}" class="ml-auto text-xs text-blue-500 hover:underline">${LT.escapeHtml(LT.t('review.editNotes'))}</a>
+    </div>
+    <div class="mb-4 flex flex-wrap gap-1">${tags}</div>
+
+    <section class="mb-6">
+      <div class="flex flex-wrap items-center gap-2 mb-3">
+        <h2 class="font-semibold">${LT.escapeHtml(LT.t('review.cards.title'))}</h2>
+        <span class="text-xs text-zinc-500">${LT.escapeHtml(LT.t('review.cards.stats', { total: cards.length, due: dueCards.length }))}</span>
+        <button id="gen-btn" class="ml-auto bg-purple-600 hover:bg-purple-500 text-white px-3 py-1.5 rounded-md text-sm">${LT.escapeHtml(genBtnLabel)}</button>
+      </div>
+
+      ${cards.length === 0 ? `
+        <div class="p-6 text-center rounded-lg border border-dashed border-zinc-300 dark:border-zinc-700 text-zinc-500">
+          ${LT.escapeHtml(LT.t('review.cards.empty'))}
+        </div>` : ''
+      }
+
+      <div id="due-cards" class="space-y-3"></div>
+
+      ${futureCards.length ? `
+        <div class="mt-4">
+          <button id="future-toggle" class="text-xs text-zinc-500 hover:text-zinc-300">
+            ${LT.escapeHtml(LT.t('review.cards.futureToggle', { n: futureCards.length }))}
+          </button>
+          <div id="future-cards" class="hidden space-y-2 mt-2"></div>
+        </div>` : ''
+      }
+    </section>
+
+    <details class="rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 mb-3">
+      <summary class="px-4 py-2 cursor-pointer font-semibold text-sm">${LT.escapeHtml(LT.t('review.notes.title'))}</summary>
+      <div class="px-4 pb-4" id="structured-notes"></div>
+    </details>
+  `;
+
+  renderStructuredNotes();
+  renderDueCards(dueCards);
+  renderFutureCards(futureCards);
+
+  document.getElementById('gen-btn').addEventListener('click', generateCards);
+  const ft = document.getElementById('future-toggle');
+  if (ft) ft.addEventListener('click', () => {
+    const fc = document.getElementById('future-cards');
+    const open = !fc.classList.toggle('hidden');
+    ft.textContent = LT.t(open ? 'review.cards.futureToggleOpen' : 'review.cards.futureToggle', { n: cards.filter(c => !isDue(c)).length });
+  });
+}
+
+function renderStructuredNotes() {
+  const root = document.getElementById('structured-notes');
+  const sections = [];
+
+  if (problem.approach_clear === false) {
+    sections.push({
+      title: LT.t('review.notes.q1Unclear'),
+      bodyHtml: `<pre class="whitespace-pre-wrap font-sans text-sm">${LT.escapeHtml(problem.approach_desc || LT.t('review.notes.q1NotFilled'))}</pre>`,
+      tone: 'amber',
+    });
+  } else {
+    sections.push({
+      title: LT.t('review.notes.q1Clear'),
+      bodyHtml: `<div class="text-sm text-emerald-600 dark:text-emerald-400">${LT.escapeHtml(LT.t('review.notes.q1Mastered'))}</div>`,
+      tone: 'emerald',
+    });
+  }
+
+  if ((problem.syntax_errors || '').trim()) {
+    sections.push({
+      title: LT.t('review.notes.q2'),
+      bodyHtml: `<pre class="whitespace-pre-wrap font-sans text-sm">${LT.escapeHtml(problem.syntax_errors)}</pre>`,
+      tone: 'rose',
+    });
+  }
+  if ((problem.style_issues || '').trim()) {
+    sections.push({
+      title: LT.t('review.notes.q3'),
+      bodyHtml: `<pre class="whitespace-pre-wrap font-sans text-sm">${LT.escapeHtml(problem.style_issues)}</pre>`,
+      tone: 'sky',
+    });
+  }
+  if ((problem.notes || '').trim()) {
+    sections.push({
+      title: LT.t('review.notes.q4'),
+      bodyHtml: `<div class="markdown-body">${LT.renderMarkdown(problem.notes)}</div>`,
+      tone: 'zinc',
+    });
+  }
+
+  const toneCls = {
+    amber:   'bg-amber-500/10 border-amber-500/30',
+    emerald: 'bg-emerald-500/10 border-emerald-500/30',
+    rose:    'bg-rose-500/10 border-rose-500/30',
+    sky:     'bg-sky-500/10 border-sky-500/30',
+    zinc:    'bg-zinc-500/10 border-zinc-500/30',
+  };
+
+  root.innerHTML = sections.map(s => `
+    <div class="mt-3 p-3 rounded border ${toneCls[s.tone]}">
+      <div class="text-xs font-semibold uppercase tracking-wide mb-2 text-zinc-500">${LT.escapeHtml(s.title)}</div>
+      ${s.bodyHtml}
+    </div>
+  `).join('') || `<div class="text-sm text-zinc-500 mt-3">${LT.escapeHtml(LT.t('review.notes.empty'))}<a class="text-blue-500 hover:underline" href="/add?id=${problem.id}">${LT.escapeHtml(LT.t('review.notes.editLink'))}</a>.</div>`;
+}
+
+function renderDueCards(list) {
+  const root = document.getElementById('due-cards');
+  root.innerHTML = '';
+  if (!list.length && cards.length) {
+    root.innerHTML = `<div class="p-4 text-center rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-700 dark:text-emerald-300">${LT.escapeHtml(LT.t('review.cards.allCaughtUp'))}</div>`;
+    return;
+  }
+  list.forEach((card, idx) => root.appendChild(renderCard(card, idx + 1, true)));
+}
+
+function renderFutureCards(list) {
+  const root = document.getElementById('future-cards');
+  if (!root) return;
+  root.innerHTML = '';
+  list.forEach((card, idx) => root.appendChild(renderCard(card, idx + 1, false)));
+}
+
+function renderCard(card, idx, due) {
+  const el = document.createElement('div');
+  el.className = `rounded-lg border bg-white dark:bg-zinc-900 ${due ? 'border-zinc-200 dark:border-zinc-800' : 'border-zinc-200/60 dark:border-zinc-800/60 opacity-70'}`;
+  el.dataset.cardId = card.id;
+  const cat = card.category || '';
+  const stateInfo = LT.t('review.cards.reviewedTimes', { n: card.review_count, date: LT.fmtDate(card.next_review_at) });
+  el.innerHTML = `
+    <div class="p-4">
+      <div class="flex items-start gap-3">
+        <div class="font-mono text-zinc-500 text-sm">${idx}.</div>
+        <div class="flex-1 min-w-0">
+          <div class="flex flex-wrap items-center gap-2 mb-2">
+            ${cat ? `<span class="text-xs px-1.5 py-0.5 rounded bg-blue-500/15 text-blue-600 dark:text-blue-300">${LT.escapeHtml(cat)}</span>` : ''}
+            <span class="text-xs text-zinc-500">${LT.escapeHtml(stateInfo)}</span>
+            <button class="ml-auto text-xs text-zinc-500 hover:text-zinc-300" data-edit>${LT.escapeHtml(LT.t('review.cards.editBtn'))}</button>
+            <button class="text-xs text-rose-500 hover:text-rose-400" data-delete>${LT.escapeHtml(LT.t('review.cards.deleteBtn'))}</button>
+          </div>
+          <div class="font-medium" data-question></div>
+          ${card.hint ? `
+            <button class="mt-2 text-xs text-zinc-500 hover:text-zinc-300" data-toggle-hint>${LT.escapeHtml(LT.t('review.cards.showHint'))}</button>
+            <div class="hidden text-sm mt-1 p-2 rounded bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-300" data-hint></div>
+          ` : ''}
+          <button class="mt-2 ml-1 text-xs text-blue-500 hover:underline" data-toggle-ans>${LT.escapeHtml(LT.t('review.cards.showAnswer'))}</button>
+          <div class="hidden mt-2 markdown-body p-2 rounded bg-zinc-100 dark:bg-zinc-800/60" data-ans></div>
+        </div>
+      </div>
+      <div class="mt-3 flex flex-wrap gap-2 pt-3 border-t border-zinc-200 dark:border-zinc-800">
+        <button class="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1.5 rounded-md text-sm" data-mark="remembered">${LT.escapeHtml(LT.t('mark.remembered'))}</button>
+        <button class="bg-amber-600 hover:bg-amber-500 text-white px-3 py-1.5 rounded-md text-sm" data-mark="fuzzy">${LT.escapeHtml(LT.t('mark.fuzzy'))}</button>
+        <button class="bg-rose-600 hover:bg-rose-500 text-white px-3 py-1.5 rounded-md text-sm" data-mark="forgot">${LT.escapeHtml(LT.t('mark.forgot'))}</button>
+      </div>
+    </div>`;
+  el.querySelector('[data-question]').textContent = card.question || '';
+  el.querySelector('[data-ans]').innerHTML = LT.renderMarkdown(card.answer || '');
+  if (card.hint) el.querySelector('[data-hint]').textContent = card.hint;
+
+  el.querySelector('[data-toggle-ans]').addEventListener('click', () => {
+    el.querySelector('[data-ans]').classList.toggle('hidden');
+  });
+  const ht = el.querySelector('[data-toggle-hint]');
+  if (ht) ht.addEventListener('click', () => el.querySelector('[data-hint]').classList.toggle('hidden'));
+  el.querySelectorAll('[data-mark]').forEach(btn => {
+    btn.addEventListener('click', () => markCard(card.id, btn.dataset.mark, el));
+  });
+  el.querySelector('[data-edit]').addEventListener('click', () => editCard(card));
+  el.querySelector('[data-delete]').addEventListener('click', () => deleteCard(card));
+  return el;
+}
+
+async function markCard(cid, status, el) {
+  el.querySelectorAll('button[data-mark]').forEach(b => b.disabled = true);
+  try {
+    await LT.api(`/api/cards/${cid}/mark`, { method: 'POST', body: { status } });
+    LT.showToast(LT.t('review.toast.recorded'), 'success');
+    await load();
+  } catch (e) {
+    LT.showToast(e.message, 'error');
+    el.querySelectorAll('button[data-mark]').forEach(b => b.disabled = false);
+  }
+}
+
+async function editCard(card) {
+  const newQ = prompt(LT.t('review.prompt.editQuestion'), card.question || '');
+  if (newQ === null) return;
+  const newH = prompt(LT.t('review.prompt.editHint'), card.hint || '');
+  const newA = prompt(LT.t('review.prompt.editAnswer'), card.answer || '');
+  if (newA === null) return;
+  try {
+    await LT.api(`/api/cards/${card.id}`, {
+      method: 'PUT',
+      body: { question: newQ, hint: newH || null, answer: newA },
+    });
+    LT.showToast(LT.t('review.toast.cardSaved'), 'success');
+    await load();
+  } catch (e) { LT.showToast(e.message, 'error'); }
+}
+
+async function deleteCard(card) {
+  if (!confirm(LT.t('review.prompt.deleteCard', { q: card.question }))) return;
+  try {
+    await LT.api(`/api/cards/${card.id}`, { method: 'DELETE' });
+    LT.showToast(LT.t('review.toast.cardDeleted'), 'success');
+    await load();
+  } catch (e) { LT.showToast(e.message, 'error'); }
+}
+
+async function generateCards() {
+  const btn = document.getElementById('gen-btn');
+  const original = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = LT.t('review.btn.generating');
+  try {
+    const r = await LT.api(`/api/problems/${PID}/cards/generate`, { method: 'POST' });
+    LT.showToast(LT.t('review.toast.generated', { n: r.count }), 'success');
+    await load();
+  } catch (e) {
+    LT.showToast('Generate failed: ' + e.message, 'error');
+    btn.disabled = false;
+    btn.textContent = original;
+  }
+}
+
+window.addEventListener('langchange', () => { if (problem) render(); });
+load();
+</script>
+{% endblock %}

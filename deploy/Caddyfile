@@ -1,0 +1,27 @@
+# 把 your.domain.com 替换为你自己的域名。
+# Caddy 会自动申请并续签 Let's Encrypt 证书，无需额外配置。
+# 安装：sudo apt install -y caddy
+# 部署：把本文件复制到 /etc/caddy/Caddyfile 后 `sudo systemctl reload caddy`
+
+your.domain.com {
+    encode gzip zstd
+
+    # 反代到本地 uvicorn
+    reverse_proxy 127.0.0.1:8765
+
+    # 简单的安全 / 缓存头
+    header {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains"
+        X-Content-Type-Options    "nosniff"
+        Referrer-Policy           "strict-origin-when-cross-origin"
+    }
+
+    # 静态资源加点缓存（应用本身没什么静态资源，但留着不亏）
+    @static path /static/*
+    header @static Cache-Control "public, max-age=3600"
+
+    log {
+        output file /var/log/caddy/leetcode-trainer.log
+        format console
+    }
+}

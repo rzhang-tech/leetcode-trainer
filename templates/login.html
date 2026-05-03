@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}Login{% endblock %}
+{% block body %}
+<div class="max-w-sm mx-auto mt-20 p-6 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900">
+  <h1 class="text-lg font-semibold mb-1" data-i18n="login.title">📚 LeetCode Trainer</h1>
+  <p class="text-sm text-zinc-500 mb-4" data-i18n="login.subtitle">Enter your access token</p>
+  {% if err %}<div class="mb-3 text-sm text-rose-500" data-i18n="login.errBadToken">Wrong token, please try again.</div>{% endif %}
+  <form method="post" action="/login" class="space-y-3">
+    <input type="password" name="token" placeholder="AUTH_TOKEN"
+           data-i18n-attr="placeholder:login.placeholder"
+           class="w-full px-3 py-2 rounded-md bg-zinc-100 dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700"
+           autofocus required>
+    <button class="w-full bg-blue-600 hover:bg-blue-500 text-white py-2 rounded-md" data-i18n="login.submit">Enter</button>
+  </form>
+</div>
+{% endblock %}

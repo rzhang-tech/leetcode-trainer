@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% block title %}Settings{% endblock %}
+{% block body %}
+<h1 class="text-2xl font-bold mb-4" data-i18n="settings.title">Settings</h1>
+
+<section class="p-4 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 mb-4">
+  <h2 class="font-semibold mb-1" data-i18n="settings.intervals.title">📐 Review intervals (days, comma-separated)</h2>
+  <p class="text-sm text-zinc-500 mb-3" data-i18n="settings.intervals.hint">Each "Got it" advances one step; "Forgot" resets to step 0. Actual gap is multiplied by an ease factor.</p>
+  <div class="flex flex-wrap gap-2">
+    <input id="intervals" class="flex-1 min-w-[12rem] px-3 py-2 rounded-md bg-zinc-100 dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 font-mono text-sm">
+    <button id="save-intervals" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-md text-sm" data-i18n="settings.intervals.save">Save</button>
+  </div>
+</section>
+
+<section class="p-4 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 mb-4">
+  <h2 class="font-semibold mb-1" data-i18n="settings.provider.title">🤖 AI provider</h2>
+  <p class="text-sm text-zinc-500">
+    <span data-i18n="settings.provider.body1">Currently using: </span>
+    <span id="provider" class="font-mono px-1.5 py-0.5 bg-zinc-100 dark:bg-zinc-800 rounded"></span>
+    <span data-i18n="settings.provider.body2">. To switch, edit </span>
+    <code class="font-mono">.env</code>
+    <span data-i18n="settings.provider.body3"> in your .env and restart the server.</span>
+  </p>
+</section>
+
+<section class="p-4 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 mb-4">
+  <h2 class="font-semibold mb-1" data-i18n="settings.theme.title">🎨 Theme</h2>
+  <p class="text-sm text-zinc-500 mb-2" data-i18n="settings.theme.body">Click 🌓 in the top-right to toggle dark / light. Saved in your browser.</p>
+</section>
+
+<section class="p-4 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900">
+  <div class="flex flex-wrap items-center gap-2 mb-3">
+    <h2 class="font-semibold" data-i18n="settings.report.title">📊 Weekly report</h2>
+    <button id="gen-report" class="ml-auto bg-purple-600 hover:bg-purple-500 text-white px-3 py-1.5 rounded-md text-sm" data-i18n="settings.report.btn">Generate this week's report</button>
+  </div>
+  <div id="report-meta" class="text-xs text-zinc-500 mb-2"></div>
+  <div id="report" class="markdown-body"></div>
+</section>
+{% endblock %}
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script>
+async function init() {
+  try {
+    const s = await LT.api('/api/settings');
+    document.getElementById('intervals').value = (s.intervals || []).join(', ');
+    document.getElementById('provider').textContent = s.ai_provider;
+  } catch (e) {
+    LT.showToast('Failed to load: ' + e.message, 'error');
+  }
+}
+
+document.getElementById('save-intervals').onclick = async () => {
+  const arr = document.getElementById('intervals').value
+    .split(',').map(x => parseInt(x.trim())).filter(n => Number.isFinite(n) && n >= 0);
+  if (!arr.length) return LT.showToast(LT.t('settings.intervals.invalid'), 'error');
+  try {
+    await LT.api('/api/settings/intervals', { method: 'PUT', body: { intervals: arr } });
+    LT.showToast(LT.t('settings.intervals.saved'), 'success');
+  } catch (e) {
+    LT.showToast(e.message, 'error');
+  }
+};
+
+document.getElementById('gen-report').onclick = async () => {
+  const btn = document.getElementById('gen-report');
+  btn.disabled = true;
+  const original = btn.textContent;
+  btn.textContent = LT.t('settings.report.btnLoading');
+  try {
+    const r = await LT.api('/api/weekly-report');
+    document.getElementById('report-meta').textContent =
+      LT.t('settings.report.meta', { newCount: r.new_count, reviewCount: r.review_count });
+    document.getElementById('report').innerHTML = LT.renderMarkdown(r.report);
+  } catch (e) {
+    LT.showToast(e.message, 'error');
+  }
+  btn.disabled = false;
+  btn.textContent = LT.t('settings.report.btn');
+};
+
+init();
+</script>
+{% endblock %}
