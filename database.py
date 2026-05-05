@@ -65,8 +65,8 @@ CREATE TABLE IF NOT EXISTS problems (
     updated_at      INTEGER NOT NULL
 );
 
-CREATE INDEX IF NOT EXISTS idx_problems_user_lc      ON problems(user_id, lc_number);
-CREATE INDEX IF NOT EXISTS idx_problems_user_due     ON problems(user_id, next_review_at);
+-- idx_problems_user_lc and idx_problems_user_due are created in init_db()
+-- after the user_id column has been added (matters for upgrades).
 
 CREATE TABLE IF NOT EXISTS review_logs (
     id            INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -99,8 +99,8 @@ CREATE TABLE IF NOT EXISTS quiz_cards (
     FOREIGN KEY (problem_id) REFERENCES problems(id) ON DELETE CASCADE
 );
 
-CREATE INDEX IF NOT EXISTS idx_quiz_cards_user_problem ON quiz_cards(user_id, problem_id);
-CREATE INDEX IF NOT EXISTS idx_quiz_cards_user_due     ON quiz_cards(user_id, next_review_at);
+-- idx_quiz_cards_user_problem and idx_quiz_cards_user_due are created in
+-- init_db() after the user_id column has been added.
 
 CREATE TABLE IF NOT EXISTS settings (
     key   TEXT PRIMARY KEY,
@@ -164,6 +164,12 @@ def init_db() -> None:
         card_cols = [r[1] for r in c.execute("PRAGMA table_info(quiz_cards)").fetchall()]
         if "user_id" not in card_cols:
             c.execute("ALTER TABLE quiz_cards ADD COLUMN user_id INTEGER NOT NULL DEFAULT 0")
+
+        # Now safe to create indexes that reference the (possibly new) user_id column.
+        c.execute("CREATE INDEX IF NOT EXISTS idx_problems_user_lc      ON problems(user_id, lc_number)")
+        c.execute("CREATE INDEX IF NOT EXISTS idx_problems_user_due     ON problems(user_id, next_review_at)")
+        c.execute("CREATE INDEX IF NOT EXISTS idx_quiz_cards_user_problem ON quiz_cards(user_id, problem_id)")
+        c.execute("CREATE INDEX IF NOT EXISTS idx_quiz_cards_user_due     ON quiz_cards(user_id, next_review_at)")
 
         # The unique constraint on lc_number became (user_id, lc_number). We
         # can't drop the old UNIQUE on a vanilla SQLite ALTER. The new compound
