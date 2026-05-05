@@ -1,8 +1,10 @@
 """Auth helpers: bcrypt password hashing + DB-backed sessions.
 
-Sessions are random opaque tokens stored server-side in the user_sessions
-table. The cookie only carries the session id (no signing needed since the
-id itself is already random and validated against the DB).
+Uses the `bcrypt` package directly rather than passlib — passlib is no longer
+maintained and breaks against modern bcrypt releases. Sessions are random
+opaque tokens stored server-side in user_sessions; the cookie carries only
+the session id (no signing needed since the id itself is already random and
+validated against the DB).
 """
 from __future__ import annotations
 
@@ -10,20 +12,26 @@ import secrets
 import time
 from typing import Optional
 
-from passlib.context import CryptContext
+import bcrypt
 
 import database as db
 
-_pwd = CryptContext(schemes=["bcrypt"], deprecated="auto")
+# bcrypt has a hard 72-byte limit on password input. Truncate at the boundary
+# instead of silently failing — for any sane password this is a no-op.
+_MAX_PW_BYTES = 72
+
+
+def _normalize(password: str) -> bytes:
+    return password.encode("utf-8")[:_MAX_PW_BYTES]
 
 
 def hash_password(password: str) -> str:
-    return _pwd.hash(password)
+    return bcrypt.hashpw(_normalize(password), bcrypt.gensalt()).decode("utf-8")
 
 
 def verify_password(password: str, hashed: str) -> bool:
     try:
-        return _pwd.verify(password, hashed)
+        return bcrypt.checkpw(_normalize(password), hashed.encode("utf-8"))
     except Exception:
         return False
 
