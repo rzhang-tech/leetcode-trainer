@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}Sign up{% endblock %}
+{% block body %}
+<div class="max-w-sm mx-auto mt-20 p-6 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900">
+  <h1 class="text-lg font-semibold mb-1" data-i18n="register.title">📚 Create your account</h1>
+  <p class="text-sm text-zinc-500 mb-4" data-i18n="register.subtitle">Start tracking your LeetCode review</p>
+  {% if err %}
+    <div class="mb-3 text-sm text-rose-500">
+      {% if err == 'invalid_email' %}<span data-i18n="register.errEmail">Invalid email address.</span>
+      {% elif err == 'short_password' %}<span data-i18n="register.errShort">Password must be at least 6 characters.</span>
+      {% elif err == 'email_taken' %}<span data-i18n="register.errTaken">That email is already registered.</span>
+      {% else %}<span>{{ err }}</span>
+      {% endif %}
+    </div>
+  {% endif %}
+  <form method="post" action="/register" class="space-y-3" onsubmit="return checkPasswords(this)">
+    <div>
+      <label class="block text-xs text-zinc-500 mb-1" data-i18n="login.email">Email</label>
+      <input type="email" name="email" required autocomplete="email" autofocus
+             class="w-full px-3 py-2 rounded-md bg-zinc-100 dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700">
+    </div>
+    <div>
+      <label class="block text-xs text-zinc-500 mb-1" data-i18n="login.password">Password</label>
+      <input id="reg-pw" type="password" name="password" required autocomplete="new-password" minlength="6"
+             class="w-full px-3 py-2 rounded-md bg-zinc-100 dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700">
+      <p class="text-xs text-zinc-500 mt-1" data-i18n="register.pwHint">At least 6 characters.</p>
+    </div>
+    <div>
+      <label class="block text-xs text-zinc-500 mb-1" data-i18n="register.confirm">Confirm password</label>
+      <input id="reg-pw2" type="password" required autocomplete="new-password" minlength="6"
+             class="w-full px-3 py-2 rounded-md bg-zinc-100 dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700">
+    </div>
+    <button class="w-full bg-blue-600 hover:bg-blue-500 text-white py-2 rounded-md" data-i18n="register.submit">Create account</button>
+  </form>
+  <p class="mt-4 text-sm text-zinc-500 text-center">
+    <span data-i18n="register.haveAccount">Already have an account?</span>
+    <a href="/login" class="text-blue-500 hover:underline ml-1" data-i18n="register.signIn">Sign in</a>
+  </p>
+</div>
+<script>
+function checkPasswords(form) {
+  const a = document.getElementById('reg-pw').value;
+  const b = document.getElementById('reg-pw2').value;
+  if (a !== b) {
+    LT.showToast(LT.t('register.mismatch', null, "Passwords don't match"), 'error');
+    return false;
+  }
+  return true;
+}
+</script>
+{% endblock %}

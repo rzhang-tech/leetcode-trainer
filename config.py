@@ -42,8 +42,11 @@ VERTEX_MODEL = os.getenv("VERTEX_MODEL", "gemini-2.5-flash")
 HOST = os.getenv("HOST", "127.0.0.1")
 PORT = int(os.getenv("PORT", "8765"))
 
-# Optional shared-secret cookie auth. Empty = disabled (local dev convenience).
-AUTH_TOKEN = os.getenv("AUTH_TOKEN", "").strip()
+# Per-user daily AI quota (calls). Admins are exempt. Reset at UTC midnight.
+DAILY_AI_QUOTA = int(os.getenv("DAILY_AI_QUOTA", "50"))
+
+# Session cookie lifetime in seconds.
+SESSION_LIFETIME = 60 * 60 * 24 * 30  # 30 days
 
 # ----- Database -----
 DATABASE_PATH = os.getenv("DATABASE_PATH", str(DATA_DIR / "tracker.db"))

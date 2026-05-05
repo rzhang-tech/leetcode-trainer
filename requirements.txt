@@ -5,6 +5,8 @@ python-multipart>=0.0.9
 httpx>=0.27
 python-dotenv>=1.0
 pydantic>=2.6
+pydantic[email]>=2.6
+passlib[bcrypt]>=1.7.4
 
 # Only required when AI_PROVIDER=vertex (Google Vertex AI). Comment out
 # these two lines if you never use Vertex — saves ~5MB of install footprint.

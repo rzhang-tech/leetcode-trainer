@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from typing import Any, Literal, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, EmailStr, Field
 
 Difficulty = Literal["easy", "medium", "hard"]
 ReviewStatus = Literal["remembered", "fuzzy", "forgot"]
@@ -14,12 +14,12 @@ class ProblemCreate(BaseModel):
     title: str
     difficulty: Difficulty
     tags: list[str] = []
-    notes: str = ""                   # 其他备注（可选 Markdown）
+    notes: str = ""
     first_solved_at: Optional[int] = None
-    approach_clear: bool = True       # 思路是否清晰
-    approach_desc: str = ""           # approach_clear=False 时填的做法描述
-    syntax_errors: str = ""           # 语法错误 / 语法要点
-    style_issues: str = ""            # 写法优化
+    approach_clear: bool = True
+    approach_desc: str = ""
+    syntax_errors: str = ""
+    style_issues: str = ""
 
 
 class ProblemUpdate(BaseModel):
@@ -48,3 +48,13 @@ class CardUpdate(BaseModel):
     hint: Optional[str] = None
     answer: Optional[str] = None
     category: Optional[str] = None
+
+
+class UserRegister(BaseModel):
+    email: EmailStr
+    password: str = Field(..., min_length=6, max_length=128)
+
+
+class UserLogin(BaseModel):
+    email: EmailStr
+    password: str

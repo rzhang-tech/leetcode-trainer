@@ -43,6 +43,12 @@
       {% endfor %}
     </div>
     <div class="ml-auto flex items-center gap-1">
+      {% if user_email %}
+        <span class="hidden sm:inline text-xs text-zinc-500 dark:text-zinc-400 px-2" title="{{ user_email }}">{{ user_email }}</span>
+        <form method="post" action="/logout" class="inline">
+          <button type="submit" class="px-2 py-1 rounded-md hover:bg-zinc-200 dark:hover:bg-zinc-800 text-sm" data-i18n="nav.logout" title="Sign out">Sign out</button>
+        </form>
+      {% endif %}
       <button id="lang-toggle" class="px-2 py-1 rounded-md hover:bg-zinc-200 dark:hover:bg-zinc-800 text-sm font-medium" title="Switch language">中文</button>
       <button id="theme-toggle" class="px-2 py-1 rounded-md hover:bg-zinc-200 dark:hover:bg-zinc-800 text-sm" data-i18n-attr="title:theme.toggle" title="Toggle theme">🌓</button>
     </div>
