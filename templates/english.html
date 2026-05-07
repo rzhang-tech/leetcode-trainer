@@ -1,0 +1,197 @@
+{% extends "base.html" %}
+{% block title %}English Practice{% endblock %}
+{% block body %}
+<h1 class="text-2xl font-bold mb-4" data-i18n="english.title">English Practice</h1>
+
+<!-- Translate input -->
+<section class="p-4 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 mb-6">
+  <label class="block text-sm font-semibold mb-1" data-i18n="english.inputLabel">What do you want to say?</label>
+  <p class="text-xs text-zinc-500 mb-2" data-i18n="english.inputHint">Type in Chinese (or any language). AI gives one natural English phrasing and saves it for spaced review.</p>
+  <div class="flex gap-2">
+    <textarea id="prompt" rows="2"
+              data-i18n-attr="placeholder:english.inputPlaceholder"
+              class="flex-1 px-3 py-2 rounded-md bg-zinc-100 dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 font-mono text-sm leading-relaxed"
+              placeholder="例：想问能不能在家工作"></textarea>
+    <button id="translate-btn" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-md text-sm whitespace-nowrap" data-i18n="english.translateBtn">Translate &amp; save</button>
+  </div>
+  <div id="latest" class="hidden mt-3 p-3 rounded border border-emerald-500/30 bg-emerald-500/10">
+    <div class="text-xs text-emerald-700 dark:text-emerald-300 mb-1" data-i18n="english.latest">Just saved</div>
+    <div class="text-sm text-zinc-500" id="latest-prompt"></div>
+    <div class="font-medium mt-1" id="latest-answer"></div>
+  </div>
+</section>
+
+<!-- Today's review -->
+<section class="mb-6">
+  <div class="flex items-baseline gap-3 mb-3">
+    <h2 class="font-semibold" data-i18n="english.todayTitle">Today's Review</h2>
+    <span id="due-count" class="text-xs text-zinc-500"></span>
+  </div>
+  <div id="due-list" class="space-y-3"></div>
+  <div id="due-empty" class="hidden text-sm text-zinc-500 p-4 rounded-lg border border-dashed border-zinc-300 dark:border-zinc-700 text-center" data-i18n="english.todayEmpty">No cards due today. Add a phrase above or check back tomorrow.</div>
+</section>
+
+<!-- All cards (collapsed) -->
+<details class="rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900">
+  <summary class="px-4 py-2 cursor-pointer font-semibold text-sm">
+    <span data-i18n="english.allCards">All cards</span>
+    (<span id="all-count">0</span>)
+  </summary>
+  <div id="all-list" class="px-4 pb-4 space-y-2"></div>
+</details>
+{% endblock %}
+{% block scripts %}
+<script>
+let dueCards = [];
+let allCards = [];
+
+async function refresh() {
+  try {
+    [dueCards, allCards] = await Promise.all([
+      LT.api('/api/english/cards?due_only=true'),
+      LT.api('/api/english/cards'),
+    ]);
+  } catch (e) {
+    LT.showToast('Failed to load: ' + e.message, 'error');
+    return;
+  }
+  renderDue();
+  renderAll();
+}
+
+function renderDue() {
+  const root = document.getElementById('due-list');
+  const empty = document.getElementById('due-empty');
+  document.getElementById('due-count').textContent =
+    LT.t('english.dueCount', { n: dueCards.length });
+  root.innerHTML = '';
+  if (!dueCards.length) {
+    empty.classList.remove('hidden');
+    return;
+  }
+  empty.classList.add('hidden');
+  dueCards.forEach(c => root.appendChild(renderReviewCard(c)));
+}
+
+function renderAll() {
+  document.getElementById('all-count').textContent = allCards.length;
+  const root = document.getElementById('all-list');
+  root.innerHTML = '';
+  if (!allCards.length) {
+    root.innerHTML = `<div class="text-sm text-zinc-500 mt-2">${LT.escapeHtml(LT.t('english.allEmpty'))}</div>`;
+    return;
+  }
+  for (const c of allCards) {
+    const div = document.createElement('div');
+    div.className = 'flex flex-wrap items-center gap-2 py-1.5 border-b border-zinc-200 dark:border-zinc-800 last:border-b-0';
+    div.innerHTML = `
+      <div class="text-sm text-zinc-500 truncate max-w-[260px]" title="${LT.escapeHtml(c.prompt)}">${LT.escapeHtml(c.prompt)}</div>
+      <div class="text-sm font-medium flex-1 min-w-[200px] truncate" title="${LT.escapeHtml(c.answer)}">${LT.escapeHtml(c.answer)}</div>
+      <div class="text-xs text-zinc-500 ml-auto whitespace-nowrap">${LT.t('english.reviewedTimes', { n: c.review_count })} · ${LT.fmtDate(c.next_review_at)}</div>
+      <button class="text-xs text-zinc-500 hover:text-zinc-300" data-edit="${c.id}">${LT.escapeHtml(LT.t('common.edit'))}</button>
+      <button class="text-xs text-rose-500 hover:text-rose-400" data-del="${c.id}">${LT.escapeHtml(LT.t('common.delete'))}</button>`;
+    div.querySelector('[data-edit]').addEventListener('click', () => editCard(c));
+    div.querySelector('[data-del]').addEventListener('click', () => deleteCard(c));
+    root.appendChild(div);
+  }
+}
+
+function renderReviewCard(card) {
+  const el = document.createElement('div');
+  el.className = 'rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-4';
+  el.innerHTML = `
+    <div class="flex items-start gap-3">
+      <div class="flex-1 min-w-0">
+        <div class="text-xs text-zinc-500 mb-1" data-i18n="english.cardPrompt">You wanted to say:</div>
+        <div class="text-base mb-3" data-prompt></div>
+        <button class="text-xs text-blue-500 hover:underline" data-show>${LT.escapeHtml(LT.t('english.showAnswer'))}</button>
+        <div class="hidden mt-2 p-2 rounded bg-zinc-100 dark:bg-zinc-800/60" data-answer></div>
+      </div>
+      <div class="text-xs text-zinc-400 whitespace-nowrap">${LT.t('english.reviewedTimes', { n: card.review_count })}</div>
+    </div>
+    <div class="mt-3 flex flex-wrap gap-2 pt-3 border-t border-zinc-200 dark:border-zinc-800">
+      <button class="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1.5 rounded-md text-sm" data-mark="remembered">${LT.escapeHtml(LT.t('mark.remembered'))}</button>
+      <button class="bg-amber-600 hover:bg-amber-500 text-white px-3 py-1.5 rounded-md text-sm" data-mark="fuzzy">${LT.escapeHtml(LT.t('mark.fuzzy'))}</button>
+      <button class="bg-rose-600 hover:bg-rose-500 text-white px-3 py-1.5 rounded-md text-sm" data-mark="forgot">${LT.escapeHtml(LT.t('mark.forgot'))}</button>
+    </div>`;
+  el.querySelector('[data-prompt]').textContent = card.prompt;
+  el.querySelector('[data-answer]').textContent = card.answer;
+  el.querySelector('[data-show]').addEventListener('click', () => {
+    el.querySelector('[data-answer]').classList.toggle('hidden');
+  });
+  el.querySelectorAll('[data-mark]').forEach(b => {
+    b.addEventListener('click', async () => {
+      el.querySelectorAll('button[data-mark]').forEach(x => x.disabled = true);
+      try {
+        await LT.api(`/api/english/cards/${card.id}/mark`, {
+          method: 'POST', body: { status: b.dataset.mark },
+        });
+        LT.showToast(LT.t('review.toast.recorded'), 'success');
+        await refresh();
+      } catch (e) {
+        LT.showToast(e.message, 'error');
+        el.querySelectorAll('button[data-mark]').forEach(x => x.disabled = false);
+      }
+    });
+  });
+  return el;
+}
+
+async function editCard(card) {
+  const newPrompt = prompt(LT.t('english.editPrompt'), card.prompt);
+  if (newPrompt === null) return;
+  const newAnswer = prompt(LT.t('english.editAnswer'), card.answer);
+  if (newAnswer === null) return;
+  try {
+    await LT.api(`/api/english/cards/${card.id}`, {
+      method: 'PUT', body: { prompt: newPrompt, answer: newAnswer },
+    });
+    LT.showToast(LT.t('review.toast.cardSaved'), 'success');
+    await refresh();
+  } catch (e) { LT.showToast(e.message, 'error'); }
+}
+
+async function deleteCard(card) {
+  if (!confirm(LT.t('english.deleteConfirm', { q: card.prompt }))) return;
+  try {
+    await LT.api(`/api/english/cards/${card.id}`, { method: 'DELETE' });
+    LT.showToast(LT.t('review.toast.cardDeleted'), 'success');
+    await refresh();
+  } catch (e) { LT.showToast(e.message, 'error'); }
+}
+
+document.getElementById('translate-btn').addEventListener('click', async () => {
+  const text = document.getElementById('prompt').value.trim();
+  if (!text) return LT.showToast(LT.t('english.emptyPrompt'), 'error');
+  const btn = document.getElementById('translate-btn');
+  btn.disabled = true;
+  const original = btn.textContent;
+  btn.textContent = LT.t('common.loading');
+  try {
+    const card = await LT.api('/api/english/translate-and-save', {
+      method: 'POST', body: { prompt: text },
+    });
+    document.getElementById('latest').classList.remove('hidden');
+    document.getElementById('latest-prompt').textContent = card.prompt;
+    document.getElementById('latest-answer').textContent = card.answer;
+    document.getElementById('prompt').value = '';
+    await refresh();
+  } catch (e) {
+    LT.showToast('Translate failed: ' + e.message, 'error');
+  }
+  btn.disabled = false;
+  btn.textContent = original;
+});
+
+// Cmd/Ctrl+Enter to submit
+document.getElementById('prompt').addEventListener('keydown', (e) => {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+    e.preventDefault();
+    document.getElementById('translate-btn').click();
+  }
+});
+
+window.addEventListener('langchange', refresh);
+refresh();
+</script>
+{% endblock %}

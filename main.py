@@ -27,6 +27,8 @@ import scheduler
 from config import AI_PROVIDER, DAILY_AI_QUOTA, HOST, PORT, SESSION_LIFETIME
 from models import (
     CardUpdate,
+    EnglishCardUpdate,
+    EnglishTranslateRequest,
     IntervalsUpdate,
     ProblemCreate,
     ProblemUpdate,
@@ -220,6 +222,74 @@ async def calendar_page(request: Request):
 @app.get("/settings", response_class=HTMLResponse)
 async def settings_page(request: Request):
     return templates.TemplateResponse(request, "settings.html", _ctx(request, "settings"))
+
+
+@app.get("/english", response_class=HTMLResponse)
+async def english_page(request: Request):
+    return templates.TemplateResponse(request, "english.html", _ctx(request, "english"))
+
+
+# --------------- JSON API: English flashcards ---------------
+@app.post("/api/english/translate-and-save")
+async def api_english_translate(req: EnglishTranslateRequest, user: dict = Depends(current_user)):
+    _consume_ai_quota_or_403(user)
+    prompt_text = ai_service.ENGLISH_TRANSLATE_TEMPLATE.format(prompt=req.prompt)
+    try:
+        text = await ai_service.chat(prompt_text)
+        parsed = ai_service.parse_json(text)
+    except Exception as e:
+        raise HTTPException(502, f"AI call failed: {e}") from None
+    answer = (parsed.get("english") or "").strip() if isinstance(parsed, dict) else ""
+    if not answer:
+        raise HTTPException(502, "AI returned empty translation")
+    next_at = scheduler.initial_next_review(int(time.time()))
+    return db.create_english_card({
+        "prompt": req.prompt.strip(),
+        "answer": answer,
+        "next_review_at": next_at,
+    }, user["id"])
+
+
+@app.get("/api/english/cards")
+async def api_english_cards_list(
+    due_only: bool = False, user: dict = Depends(current_user),
+):
+    return db.list_english_cards(user["id"], due_only=due_only)
+
+
+@app.put("/api/english/cards/{cid}")
+async def api_english_card_update(
+    cid: int, data: EnglishCardUpdate, user: dict = Depends(current_user),
+):
+    if not db.get_english_card(cid, user["id"]):
+        raise HTTPException(404)
+    return db.update_english_card(cid, user["id"], data.model_dump(exclude_unset=True))
+
+
+@app.delete("/api/english/cards/{cid}")
+async def api_english_card_delete(cid: int, user: dict = Depends(current_user)):
+    if not db.delete_english_card(cid, user["id"]):
+        raise HTTPException(404)
+    return {"ok": True}
+
+
+@app.post("/api/english/cards/{cid}/mark")
+async def api_english_card_mark(
+    cid: int, mark: ReviewMark, user: dict = Depends(current_user),
+):
+    card = db.get_english_card(cid, user["id"])
+    if not card:
+        raise HTTPException(404)
+    new_step, next_at, new_ef = scheduler.compute_next(
+        current_step=card["review_step"],
+        ease_factor=card["ease_factor"],
+        status=mark.status,
+    )
+    db.apply_english_review(
+        cid, user["id"],
+        review_step=new_step, next_review_at=next_at, ease_factor=new_ef,
+    )
+    return db.get_english_card(cid, user["id"])
 
 
 # --------------- JSON API: problems ---------------

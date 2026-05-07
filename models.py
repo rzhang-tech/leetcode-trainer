@@ -60,3 +60,12 @@ class UserRegister(BaseModel):
 class UserLogin(BaseModel):
     email: EmailStr
     password: str
+
+
+class EnglishTranslateRequest(BaseModel):
+    prompt: str = Field(..., min_length=1, max_length=2000)
+
+
+class EnglishCardUpdate(BaseModel):
+    prompt: Optional[str] = None
+    answer: Optional[str] = None

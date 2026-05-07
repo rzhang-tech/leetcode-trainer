@@ -275,6 +275,14 @@ Return ONLY JSON, no explanation text and no code fences:
 `category` MUST be exactly one of: "Algorithm", "Syntax", "Pitfall".
 """
 
+ENGLISH_TRANSLATE_TEMPLATE = """The user wants to express the following idea in natural, idiomatic English. Give a single best phrasing — concise, common, and sounding like a native speaker would say it in everyday context. No alternatives, no commentary, no register tags.
+
+User's intent (typically Chinese): {prompt}
+
+Return ONLY JSON, no explanation, no code fences:
+{{"english": "the natural English phrasing"}}
+"""
+
 WEEKLY_REPORT_TEMPLATE = """You are a LeetCode learning coach. Below is the user's data from the past 7 days. Write a concise weekly report covering:
 
 1. New problems this week (count, difficulty distribution)

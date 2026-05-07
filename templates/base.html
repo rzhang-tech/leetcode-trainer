@@ -37,7 +37,7 @@
   <div class="max-w-5xl mx-auto px-4 py-3 flex items-center gap-2 sm:gap-4 flex-wrap">
     <a href="/" class="font-semibold text-base sm:text-lg shrink-0" data-i18n="app.title">📚 LeetCode Trainer</a>
     <div class="flex gap-1 text-sm overflow-x-auto">
-      {% set nav = [('today','/','nav.today','Today\'s Review'),('add','/add','nav.add','Add Problem'),('list','/list','nav.list','Problem List'),('calendar','/calendar','nav.calendar','Calendar'),('settings','/settings','nav.settings','Settings')] %}
+      {% set nav = [('today','/','nav.today','Today\'s Review'),('add','/add','nav.add','Add Problem'),('list','/list','nav.list','Problem List'),('calendar','/calendar','nav.calendar','Calendar'),('english','/english','nav.english','English'),('settings','/settings','nav.settings','Settings')] %}
       {% for key,href,i18n_key,label in nav %}
         <a href="{{ href }}" class="px-3 py-1.5 rounded-md whitespace-nowrap {% if page == key %}bg-blue-600 text-white{% else %}hover:bg-zinc-200 dark:hover:bg-zinc-800{% endif %}" data-i18n="{{ i18n_key }}">{{ label }}</a>
       {% endfor %}

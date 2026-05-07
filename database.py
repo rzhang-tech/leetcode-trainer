@@ -103,6 +103,23 @@ CREATE TABLE IF NOT EXISTS quiz_cards (
 -- idx_quiz_cards_user_problem and idx_quiz_cards_user_due are created in
 -- init_db() after the user_id column has been added.
 
+CREATE TABLE IF NOT EXISTS english_cards (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id         INTEGER NOT NULL,
+    prompt          TEXT    NOT NULL,
+    answer          TEXT    NOT NULL,
+    review_count    INTEGER NOT NULL DEFAULT 0,
+    review_step     INTEGER NOT NULL DEFAULT 0,
+    next_review_at  INTEGER NOT NULL,
+    ease_factor     REAL    NOT NULL DEFAULT 2.5,
+    last_reviewed_at INTEGER,
+    created_at      INTEGER NOT NULL,
+    updated_at      INTEGER NOT NULL,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_english_cards_user_due ON english_cards(user_id, next_review_at);
+
 CREATE TABLE IF NOT EXISTS settings (
     key   TEXT PRIMARY KEY,
     value TEXT NOT NULL
@@ -630,6 +647,108 @@ def recent_review_logs(user_id: int, since_ts: int) -> list[dict]:
         d["tags"] = json.loads(d["tags"] or "[]")
         out.append(d)
     return out
+
+
+# =====================================================================
+# English cards (separate from LeetCode quiz cards — user-typed phrases
+# they want to remember the natural English for).
+# =====================================================================
+def get_english_card(cid: int, user_id: int) -> Optional[dict]:
+    with get_conn() as c:
+        r = c.execute(
+            "SELECT * FROM english_cards WHERE id = ? AND user_id = ?",
+            (cid, user_id),
+        ).fetchone()
+    return dict(r) if r else None
+
+
+def list_english_cards(user_id: int, due_only: bool = False, now_ts: Optional[int] = None) -> list[dict]:
+    if due_only:
+        now_ts = now_ts or int(time.time())
+        today = datetime.datetime.fromtimestamp(now_ts)
+        today_end = int(today.replace(hour=23, minute=59, second=59).timestamp())
+        with get_conn() as c:
+            rows = c.execute(
+                "SELECT * FROM english_cards WHERE user_id = ? AND next_review_at <= ? "
+                "ORDER BY next_review_at",
+                (user_id, today_end),
+            ).fetchall()
+    else:
+        with get_conn() as c:
+            rows = c.execute(
+                "SELECT * FROM english_cards WHERE user_id = ? ORDER BY next_review_at, id",
+                (user_id,),
+            ).fetchall()
+    return [dict(r) for r in rows]
+
+
+def create_english_card(data: dict, user_id: int) -> dict:
+    now = int(time.time())
+    with get_conn() as c:
+        cur = c.execute(
+            """INSERT INTO english_cards
+               (user_id, prompt, answer, review_count, review_step, next_review_at,
+                ease_factor, created_at, updated_at)
+               VALUES (?, ?, ?, 0, 0, ?, ?, ?, ?)""",
+            (
+                user_id,
+                data["prompt"],
+                data["answer"],
+                data["next_review_at"],
+                data.get("ease_factor", DEFAULT_EASE),
+                now,
+                now,
+            ),
+        )
+        cid = cur.lastrowid
+        r = c.execute("SELECT * FROM english_cards WHERE id = ?", (cid,)).fetchone()
+    return dict(r)
+
+
+def update_english_card(cid: int, user_id: int, data: dict) -> Optional[dict]:
+    fields: list[str] = []
+    values: list[Any] = []
+    for k in ("prompt", "answer"):
+        if k in data and data[k] is not None:
+            fields.append(f"{k} = ?")
+            values.append(data[k])
+    if not fields:
+        return get_english_card(cid, user_id)
+    fields.append("updated_at = ?")
+    values.append(int(time.time()))
+    values.extend([cid, user_id])
+    with get_conn() as c:
+        c.execute(
+            f"UPDATE english_cards SET {', '.join(fields)} WHERE id = ? AND user_id = ?",
+            values,
+        )
+    return get_english_card(cid, user_id)
+
+
+def delete_english_card(cid: int, user_id: int) -> bool:
+    with get_conn() as c:
+        cur = c.execute(
+            "DELETE FROM english_cards WHERE id = ? AND user_id = ?", (cid, user_id)
+        )
+        return cur.rowcount > 0
+
+
+def apply_english_review(
+    cid: int, user_id: int, *, review_step: int, next_review_at: int, ease_factor: float
+) -> None:
+    now = int(time.time())
+    with get_conn() as c:
+        c.execute(
+            """UPDATE english_cards
+               SET review_count = review_count + 1,
+                   review_step  = ?,
+                   next_review_at = ?,
+                   ease_factor  = ?,
+                   last_reviewed_at = ?,
+                   updated_at   = ?
+               WHERE id = ? AND user_id = ?""",
+            (review_step, next_review_at, ease_factor, now, now, cid, user_id),
+        )
 
 
 # =====================================================================
