@@ -20,6 +20,7 @@ class ProblemCreate(BaseModel):
     approach_desc: str = ""
     syntax_errors: str = ""
     style_issues: str = ""
+    private_notes: str = ""
 
 
 class ProblemUpdate(BaseModel):
@@ -33,6 +34,7 @@ class ProblemUpdate(BaseModel):
     approach_desc: Optional[str] = None
     syntax_errors: Optional[str] = None
     style_issues: Optional[str] = None
+    private_notes: Optional[str] = None
 
 
 class ReviewMark(BaseModel):

@@ -96,6 +96,11 @@ const I18N_DICT = {
     'add.q4.hint': "Anything that doesn't fit above: problem statement, follow-ups, interview takeaways…",
     'add.q4.placeholder': '## Problem statement\n...\n\n## Follow-up\n...',
 
+    'add.q5.label': '⑤ Private notes',
+    'add.q5.badge': 'never sent to AI',
+    'add.q5.hint': "For things you want to remember but don't want quizzed on — e.g. how to explain this problem in English, personal context, soft notes.",
+    'add.q5.placeholder': "Examples:\n- English phrasing: 'Group strings that are anagrams using sorted-string as canonical key'\n- Felt nervous on this one in mock interview, want to redo",
+
     'add.btnSave': 'Save',
     'add.btnGoReview': 'Go to review →',
     'add.btnDelete': 'Delete',
@@ -163,6 +168,8 @@ const I18N_DICT = {
     'review.notes.q2': '② Syntax errors / language pitfalls',
     'review.notes.q3': '③ Style / optimization',
     'review.notes.q4': '④ Other notes',
+    'review.notes.q5': '⑤ Private notes',
+    'review.notes.q5Badge': 'AI-private',
 
     'review.toast.recorded': 'Recorded',
     'review.toast.generated': 'Generated {n} cards',
@@ -300,6 +307,11 @@ const I18N_DICT = {
     'add.q4.hint': '不属于上面三类的内容：题面、follow-up、面试感悟……',
     'add.q4.placeholder': '## 题面\n...\n\n## Follow-up\n...',
 
+    'add.q5.label': '⑤ 私人笔记',
+    'add.q5.badge': '不会被 AI 拿去出题',
+    'add.q5.hint': '想记下来但不希望被 AI 拿去出题的内容——比如如何用英文阐述这道题、个人感受、软性笔记。',
+    'add.q5.placeholder': '例：\n- 英文阐述：Group strings that are anagrams using sorted-string as canonical key\n- mock 面试时这道题表现不佳，想重做',
+
     'add.btnSave': '保存',
     'add.btnGoReview': '前往复习页 →',
     'add.btnDelete': '删除',
@@ -365,6 +377,8 @@ const I18N_DICT = {
     'review.notes.q2': '② 语法错误 / 语法要点',
     'review.notes.q3': '③ 写法优化',
     'review.notes.q4': '④ 其他备注',
+    'review.notes.q5': '⑤ 私人笔记',
+    'review.notes.q5Badge': 'AI 不可见',
 
     'review.toast.recorded': '已记录',
     'review.toast.generated': '生成了 {n} 张卡片',

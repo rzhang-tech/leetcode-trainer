@@ -85,6 +85,18 @@
               placeholder="## Problem statement..."></textarea>
   </details>
 
+  <details class="p-4 rounded-lg border border-purple-300/40 dark:border-purple-500/30 bg-white dark:bg-zinc-900">
+    <summary class="cursor-pointer text-sm font-semibold flex items-center gap-2" data-i18n="add.q5.label">
+      ⑤ Private notes
+      <span class="text-[10px] px-1.5 py-0.5 rounded bg-purple-500/15 text-purple-600 dark:text-purple-300 font-normal" data-i18n="add.q5.badge">never sent to AI</span>
+    </summary>
+    <p class="text-xs text-zinc-500 mt-2 mb-2" data-i18n="add.q5.hint">For things you want to remember but don't want quizzed on — e.g. how to explain this problem in English, personal context, soft notes.</p>
+    <textarea id="private_notes" rows="8"
+              data-i18n-attr="placeholder:add.q5.placeholder"
+              class="w-full px-3 py-2 rounded-md bg-zinc-100 dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 font-mono text-sm leading-relaxed"
+              placeholder="Example: English phrasing for explaining this problem..."></textarea>
+  </details>
+
   <div class="flex flex-wrap gap-2 sticky bottom-0 bg-zinc-50 dark:bg-zinc-950 py-2">
     <button id="save" type="submit" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-md" data-i18n="add.btnSave">Save</button>
     <a id="go-review" href="#" class="hidden px-4 py-2 rounded-md border border-zinc-300 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800" data-i18n="add.btnGoReview">Go to review →</a>
@@ -190,6 +202,7 @@ function loadIntoForm(p) {
   $f('syntax_errors').value = p.syntax_errors || '';
   $f('style_issues').value = p.style_issues || '';
   $f('notes').value = p.notes || '';
+  $f('private_notes').value = p.private_notes || '';
   syncApproachVisibility();
   $f('delete').classList.remove('hidden');
   const goRev = $f('go-review');
@@ -214,6 +227,7 @@ $f('form').addEventListener('submit', async (e) => {
     syntax_errors: $f('syntax_errors').value,
     style_issues: $f('style_issues').value,
     notes: $f('notes').value,
+    private_notes: $f('private_notes').value,
   };
   if (!data.lc_number || !data.title) {
     LT.showToast(LT.t('add.toast.titleRequired'), 'error');

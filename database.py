@@ -56,6 +56,7 @@ CREATE TABLE IF NOT EXISTS problems (
     approach_desc   TEXT    NOT NULL DEFAULT '',
     syntax_errors   TEXT    NOT NULL DEFAULT '',
     style_issues    TEXT    NOT NULL DEFAULT '',
+    private_notes   TEXT    NOT NULL DEFAULT '',  -- never fed to the AI
     review_count    INTEGER NOT NULL DEFAULT 0,
     review_step     INTEGER NOT NULL DEFAULT 0,
     next_review_at  INTEGER NOT NULL,
@@ -151,6 +152,7 @@ def init_db() -> None:
             ("approach_desc",  "TEXT NOT NULL DEFAULT ''"),
             ("syntax_errors",  "TEXT NOT NULL DEFAULT ''"),
             ("style_issues",   "TEXT NOT NULL DEFAULT ''"),
+            ("private_notes",  "TEXT NOT NULL DEFAULT ''"),
         ):
             if col not in prob_cols:
                 c.execute(f"ALTER TABLE problems ADD COLUMN {col} {decl}")
@@ -336,12 +338,12 @@ def create_problem(data: dict, user_id: int) -> dict:
             """INSERT INTO problems
                (user_id, lc_number, title, difficulty, tags, first_solved_at,
                 notes, ai_summary,
-                approach_clear, approach_desc, syntax_errors, style_issues,
+                approach_clear, approach_desc, syntax_errors, style_issues, private_notes,
                 review_count, review_step, next_review_at, ease_factor,
                 created_at, updated_at)
                VALUES (?, ?, ?, ?, ?, ?,
                        ?, ?,
-                       ?, ?, ?, ?,
+                       ?, ?, ?, ?, ?,
                        0, 0, ?, ?,
                        ?, ?)""",
             (
@@ -357,6 +359,7 @@ def create_problem(data: dict, user_id: int) -> dict:
                 data.get("approach_desc", ""),
                 data.get("syntax_errors", ""),
                 data.get("style_issues", ""),
+                data.get("private_notes", ""),
                 data.get("next_review_at", now + 86400),
                 data.get("ease_factor", DEFAULT_EASE),
                 now,
@@ -373,7 +376,7 @@ def update_problem(pid: int, user_id: int, data: dict) -> Optional[dict]:
     values: list[Any] = []
     for k in (
         "title", "difficulty", "notes", "first_solved_at",
-        "approach_desc", "syntax_errors", "style_issues",
+        "approach_desc", "syntax_errors", "style_issues", "private_notes",
     ):
         if k in data and data[k] is not None:
             fields.append(f"{k} = ?")
