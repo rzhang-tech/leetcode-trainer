@@ -284,6 +284,7 @@ async def api_english_card_mark(
         current_step=card["review_step"],
         ease_factor=card["ease_factor"],
         status=mark.status,
+        last_reviewed_at=card["last_reviewed_at"],
     )
     db.apply_english_review(
         cid, user["id"],
@@ -486,6 +487,7 @@ async def api_card_mark(cid: int, mark: ReviewMark, user: dict = Depends(current
         current_step=card["review_step"],
         ease_factor=card["ease_factor"],
         status=mark.status,
+        last_reviewed_at=card["last_reviewed_at"],
     )
     db.apply_card_review(
         cid, user["id"], review_step=new_step, next_review_at=next_at, ease_factor=new_ef,
