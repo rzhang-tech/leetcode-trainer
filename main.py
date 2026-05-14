@@ -426,9 +426,13 @@ async def api_cards_generate(pid: int, user: dict = Depends(current_user)):
             + (p.get("approach_desc") or "(not yet filled)")
         )
         must_describe_approach = (
-            "7. **Mandatory**: include one open-ended question asking the user to describe "
-            "the core approach in their own words — key idea, key steps, complexity. "
-            "This forces active recall.\n"
+            "7. **Mandatory**: the very FIRST question in the array must ask the user to describe "
+            "the core approach in their own words (key idea, key steps, time/space complexity). "
+            "Rules for this question: (a) category must be \"Approach\", "
+            "(b) omit the hint field entirely — no hints whatsoever, "
+            "(c) the question text must NOT mention any specific technique, data structure, "
+            "or algorithm name that could jog the user's memory — ask only 'describe your approach' "
+            "or similar, with zero clues.\n"
         )
 
     prompt = ai_service.QUIZ_TEMPLATE.format(

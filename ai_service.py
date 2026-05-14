@@ -255,7 +255,7 @@ Problem: LeetCode {lc_number} {title}
 Rules:
 1. Questions must be **specific** — e.g. "write a code snippet that does X", "what does this code output", "what is the time complexity of Y", "what's the difference between these two approaches".
 2. **Prioritize the 'Syntax' and 'Style' sections** — these are concrete pitfalls the user has hit, more useful than generic algorithm trivia.
-3. Mix categories across the three options below.
+3. Mix categories across the options below.
 4. Questions must be directly answerable, not too open-ended.
 5. If a section says "(none)", do not force questions out of that category.
 6. Match the language of your output (questions, hints, answers) to the language the user wrote their notes in. If the notes are in Chinese, answer in Chinese; English notes → English output.
@@ -265,14 +265,14 @@ Return ONLY JSON, no explanation text and no code fences:
   "questions": [
     {{
       "question": "...",
-      "hint": "...(omit field if no hint)",
+      "hint": "...(omit field if no hint needed)",
       "answer": "...",
       "category": "Algorithm"
     }}
   ]
 }}
 
-`category` MUST be exactly one of: "Algorithm", "Syntax", "Pitfall".
+`category` MUST be exactly one of: "Approach", "Algorithm", "Syntax", "Pitfall".
 """
 
 ENGLISH_TRANSLATE_TEMPLATE = """The user wants to express the following idea in natural, idiomatic English. Give a single best phrasing — concise, common, and sounding like a native speaker would say it in everyday context. No alternatives, no commentary, no register tags.

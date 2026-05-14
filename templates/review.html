@@ -166,7 +166,16 @@ function renderDueCards(list) {
     root.innerHTML = `<div class="p-4 text-center rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-700 dark:text-emerald-300">${LT.escapeHtml(LT.t('review.cards.allCaughtUp'))}</div>`;
     return;
   }
-  list.forEach((card, idx) => root.appendChild(renderCard(card, idx + 1, true)));
+  const approachCard = list.find(c => c.category === 'Approach');
+  if (approachCard) {
+    root.appendChild(renderCard(approachCard, 1, true));
+    const notice = document.createElement('div');
+    notice.className = 'mt-3 p-3 text-sm text-center text-zinc-500 rounded-lg border border-dashed border-zinc-300 dark:border-zinc-700';
+    notice.textContent = LT.t('review.cards.approachFirst');
+    root.appendChild(notice);
+  } else {
+    list.forEach((card, idx) => root.appendChild(renderCard(card, idx + 1, true)));
+  }
 }
 
 function renderFutureCards(list) {
