@@ -38,7 +38,7 @@ class AIError(RuntimeError):
 # ---------------- providers ----------------
 async def _chat_gemini(prompt: str) -> str:
     if not GOOGLE_API_KEY:
-        raise AIError("GOOGLE_API_KEY 未配置")
+        raise AIError("GOOGLE_API_KEY is not configured")
     url = (
         f"https://generativelanguage.googleapis.com/v1beta/models/"
         f"{GEMINI_MODEL}:generateContent"
@@ -60,12 +60,12 @@ async def _chat_gemini(prompt: str) -> str:
     try:
         return data["candidates"][0]["content"]["parts"][0]["text"]
     except (KeyError, IndexError, TypeError) as e:
-        raise AIError(f"Gemini 响应格式异常: {e}; raw={data}") from None
+        raise AIError(f"Unexpected Gemini response shape: {e}; raw={data}") from None
 
 
 async def _chat_deepseek(prompt: str) -> str:
     if not DEEPSEEK_API_KEY:
-        raise AIError("DEEPSEEK_API_KEY 未配置")
+        raise AIError("DEEPSEEK_API_KEY is not configured")
     url = "https://api.deepseek.com/chat/completions"
     payload = {
         "model": DEEPSEEK_MODEL,
@@ -87,7 +87,7 @@ async def _chat_deepseek(prompt: str) -> str:
     try:
         return data["choices"][0]["message"]["content"]
     except (KeyError, IndexError, TypeError) as e:
-        raise AIError(f"DeepSeek 响应格式异常: {e}; raw={data}") from None
+        raise AIError(f"Unexpected DeepSeek response shape: {e}; raw={data}") from None
 
 
 # --- Vertex AI -------------------------------------------------------------
@@ -111,7 +111,7 @@ async def _get_vertex_token() -> str:
                 from google.auth import default as _gauth_default  # type: ignore
             except ImportError as e:
                 raise AIError(
-                    "使用 vertex provider 需要先安装 google-auth：pip install google-auth"
+                    "google-auth is required for the vertex provider: pip install google-auth"
                 ) from e
             try:
                 creds, _proj = _gauth_default(
@@ -119,8 +119,8 @@ async def _get_vertex_token() -> str:
                 )
             except Exception as e:
                 raise AIError(
-                    "无法加载 Google ADC 凭据：检查 GOOGLE_APPLICATION_CREDENTIALS "
-                    f"或运行 `gcloud auth application-default login`。原始错误: {e}"
+                    "Failed to load Google ADC credentials. Set GOOGLE_APPLICATION_CREDENTIALS "
+                    f"or run `gcloud auth application-default login`. Original error: {e}"
                 ) from None
             _vertex_creds = creds
         if not _vertex_creds.valid:
@@ -129,13 +129,13 @@ async def _get_vertex_token() -> str:
             try:
                 await asyncio.to_thread(_vertex_creds.refresh, Request())
             except Exception as e:
-                raise AIError(f"刷新 Vertex token 失败: {e}") from None
+                raise AIError(f"Failed to refresh Vertex token: {e}") from None
         return _vertex_creds.token
 
 
 async def _chat_vertex(prompt: str) -> str:
     if not VERTEX_PROJECT:
-        raise AIError("VERTEX_PROJECT 未配置")
+        raise AIError("VERTEX_PROJECT is not configured")
     token = await _get_vertex_token()
     url = (
         f"https://{VERTEX_LOCATION}-aiplatform.googleapis.com/v1/"
@@ -161,12 +161,12 @@ async def _chat_vertex(prompt: str) -> str:
     try:
         return data["candidates"][0]["content"]["parts"][0]["text"]
     except (KeyError, IndexError, TypeError) as e:
-        raise AIError(f"Vertex 响应格式异常: {e}; raw={data}") from None
+        raise AIError(f"Unexpected Vertex response shape: {e}; raw={data}") from None
 
 
 async def _chat_claude(prompt: str) -> str:
     if not ANTHROPIC_API_KEY:
-        raise AIError("ANTHROPIC_API_KEY 未配置")
+        raise AIError("ANTHROPIC_API_KEY is not configured")
     url = "https://api.anthropic.com/v1/messages"
     payload = {
         "model": CLAUDE_MODEL,
@@ -193,7 +193,7 @@ async def _chat_claude(prompt: str) -> str:
                 return block["text"]
         raise KeyError("no text block")
     except (KeyError, IndexError, TypeError) as e:
-        raise AIError(f"Claude 响应格式异常: {e}; raw={data}") from None
+        raise AIError(f"Unexpected Claude response shape: {e}; raw={data}") from None
 
 
 async def chat(prompt: str) -> str:
@@ -206,7 +206,7 @@ async def chat(prompt: str) -> str:
         return await _chat_deepseek(prompt)
     if AI_PROVIDER == "claude":
         return await _chat_claude(prompt)
-    raise AIError(f"未知的 AI_PROVIDER: {AI_PROVIDER!r}")
+    raise AIError(f"Unknown AI_PROVIDER: {AI_PROVIDER!r}")
 
 
 # ---------------- response helpers ----------------
