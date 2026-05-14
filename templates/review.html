@@ -193,10 +193,10 @@ function renderCard(card, idx, due) {
             <button class="ml-auto text-xs text-zinc-500 hover:text-zinc-300" data-edit>${LT.escapeHtml(LT.t('review.cards.editBtn'))}</button>
             <button class="text-xs text-rose-500 hover:text-rose-400" data-delete>${LT.escapeHtml(LT.t('review.cards.deleteBtn'))}</button>
           </div>
-          <div class="font-medium" data-question></div>
+          <div class="font-medium markdown-body" data-question></div>
           ${card.hint ? `
             <button class="mt-2 text-xs text-zinc-500 hover:text-zinc-300" data-toggle-hint>${LT.escapeHtml(LT.t('review.cards.showHint'))}</button>
-            <div class="hidden text-sm mt-1 p-2 rounded bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-300" data-hint></div>
+            <div class="hidden text-sm mt-1 p-2 rounded bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-300 markdown-body" data-hint></div>
           ` : ''}
           <button class="mt-2 ml-1 text-xs text-blue-500 hover:underline" data-toggle-ans>${LT.escapeHtml(LT.t('review.cards.showAnswer'))}</button>
           <div class="hidden mt-2 markdown-body p-2 rounded bg-zinc-100 dark:bg-zinc-800/60" data-ans></div>
@@ -208,9 +208,9 @@ function renderCard(card, idx, due) {
         <button class="bg-rose-600 hover:bg-rose-500 text-white px-3 py-1.5 rounded-md text-sm" data-mark="forgot">${LT.escapeHtml(LT.t('mark.forgot'))}</button>
       </div>
     </div>`;
-  el.querySelector('[data-question]').textContent = card.question || '';
+  el.querySelector('[data-question]').innerHTML = LT.renderMarkdown(card.question || '');
   el.querySelector('[data-ans]').innerHTML = LT.renderMarkdown(card.answer || '');
-  if (card.hint) el.querySelector('[data-hint]').textContent = card.hint;
+  if (card.hint) el.querySelector('[data-hint]').innerHTML = LT.renderMarkdown(card.hint || '');
 
   el.querySelector('[data-toggle-ans]').addEventListener('click', () => {
     el.querySelector('[data-ans]').classList.toggle('hidden');
